@@ -124,23 +124,6 @@ public:
         {
             int cur_length = rand() % length + 1;
             char cur_char = rand() % 27 + 'a';
-            // 法一：
-            // char *array_char = new char[cur_length];
-            // memset(array_char, cur_char, cur_length);
-            // s += string(array_char, &array_char[cur_length]);
-            // delete[] array_char;
-            // 法二：
-            // string ss(cur_length, cur_char); // cur_length 个 cur_char
-
-            /*
-            关于C字符数组和C++字符串的几个注意事项：
-
-            1.C++的string构造函数会在末尾自动添加一个'\0'，并且size和capacity函数都不计算'\0'的；
-
-            2.C语言用char*指针作为字符串时，在读取字符串时需要一个特殊字符0来标记指针的结束位置，也就是通常认为的字符串结束标记。
-            而c++语言则是面向对象的，长度信息直接被存储在了对象的成员中，读取字符串可以直接根据这个长度来读取，所以就没必要需要结束标记了。
-            而且结束标记也不利于读取字符串中夹杂0字符的字符串。
-            */
             raw += string(cur_length, cur_char);
             length -= cur_length;
         }
