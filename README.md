@@ -41,9 +41,7 @@
 
 2. `string( size_type length, char ch );`拷贝length个ch字符，`string str2( 5, 'c' );  //  str2 'ccccc'*`；
 
-3. 用字符数组或者字符串：`string( string &str, size_type index, size_type length );`从`str[index]`开始的length个字符 或者 `string( string &str, size_type start, size_type end);`从`str[start]`到`str[end]`之间的字符；
-
-   `string &str`可以变成`char *`;
+3. 用字符数组或者字符串：`string( string &str, size_type index, size_type length );`从`str[index]`开始的length个字符 或者 `string( string &str, size_type start, size_type end);`从`str[start]`到`str[end]`之间的字符； `string &str`可以变成`char *`;
 
 ### 关于C++的string是否以\0结尾
 
