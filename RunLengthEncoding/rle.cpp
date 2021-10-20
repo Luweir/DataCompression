@@ -1,23 +1,4 @@
-/*
-游程编码
-游程编码是一种比较简单的压缩算法，其基本思想是将重复且连续出现多次的字符使用（连续出现次数，某个字符）来描述;
-
-比如一个字符串：AAAAABBBBCCC 使用游程编码可以将其描述为：5A4B3C
-
-5A表示这个地方有5个连续的A，同理4B表示有4个连续的B，3C表示有3个连续的C，其它情况以此类推。
-原字符串需要12个字符才能描述，而使用游程编码压缩之后只需要6个字符就可以表示，还原回去的时候只需要将字符重复n次即可，这是个原理非常简单的算法。
-
-那么在不同情况下这个编码的效果如何呢，假如采用定长1个字节来描述连续出现次数，并且一个字符占用1个字节，
-那么描述（连续出现次数，某个字符）需要的空间是2个字节，只要这个连续出现次数大于2就能够节省空间，
-比如AAA占用3个字节，编码为(3,A)占用两个字节，能够节省一个字节的空间，可以看出连续出现的次数越多压缩效果越好，节省的空间越大，
-对一个字符编码能够节省的空间等于=连续出现次数-2，于是就很容易推出连续出现次数等于2时占用空间不变，
-比如AA占用两个字节，编码为（2,A）仍然占用两个字节，白白浪费了对其编码的资源却没有达到节省空间的效果，
-还有更惨的情况，就是连续出现次数总是为1，这个时候会越压越大，比如A占用一个字节，编码为(1,A)占用两个字节，比原来多了一个字节，这种情况就很悲剧，
-一个1M的文件可能一下给压缩成了2M（真是效果奇佳啊），这是能够出现的最糟糕的情况，
-相当于在文件的每一个字节前面都插入了一个多余的字节0X01（这个字节表示连续出现次数为1），这种情况说明不适合使用游程编码，
-事实上，绝大多数数据的特征都属于第三种情况，不适合使用游程编码。
-
-*/
+//游程编码
 
 #include <iostream>
 #include <cstdlib>
@@ -31,46 +12,113 @@ using namespace std;
 void quit(const char *message = 0)
 {
     if (message)
-        printf("%s\n", message);
+        cout << message << endl;
     exit(1);
 }
 
 class RLE
 {
 private:
-    string s;
-    string result;
+    string raw;
+    string comp;
 
 public:
     RLE()
     {
     }
-    void RleCompressString()
+    string GetComp()
     {
-        int len = s.size();
+        return comp;
+    }
+    // 压缩纯字母字符串数据
+    void CompressPureString()
+    {
+        int len = raw.size();
         if (len == 0)
         {
             cout << "the size of s is 0" << endl;
         }
-        result.clear();
+        comp.clear();
         int count = 1;
-        for (int i = 0; i < s.size() - 1; i++)
+        for (int i = 1; i < len; i++)
         {
-            if (s[i + 1] == s[i])
+            if (raw[i] == raw[i - 1])
             {
                 count++;
+            }
+            else
+            {
+                comp += to_string(count) + raw[i - 1];
+                count = 1;
+            }
+        }
+        comp += to_string(count) + raw[len - 1];
+    }
+    // 解压缩纯字母字符串数据
+    string DecompressPureString(string ss = "")
+    {
+        string curS = ss == "" ? comp : ss;
+        string res = "";
+        int i = 0, j = 0;
+        int len = curS.size();
+        while (j < len)
+        {
+            if (curS[j] >= '0' && curS[j] <= '9')
+            {
+                j++;
                 continue;
             }
-            
-            result += to_string(count);
-            result.push_back(s[i]);
-            count = 1;
+            else
+            {
+                res += string(stoi(curS.substr(i, j - i + 1)), curS[j]);
+                j++;
+                i = j;
+            }
         }
+        return res;
     }
-    // 随机生成RLE友好型字符串
-    void RandomRleFriendlyString(int length)
+    // 通用字符串压缩
+    void CompressCommonString()
     {
-        s.clear();
+        int len = raw.size();
+        if (len <= 1)
+        {
+            cout << "Illegal size" << endl;
+        }
+        comp.clear();
+        int count = 1;
+        for (int i = 1; i < len; i++)
+        {
+            if (raw[i] == raw[i - 1] && count < 9)
+            {
+                count++;
+            }
+            else
+            {
+                comp += to_string(count) + raw[i - 1];
+                count = 1;
+            }
+        }
+        comp += to_string(count) + raw[len - 1];
+    }
+    // 通用字符串解压缩
+    string DecompressCommonString(string ss = "")
+    {
+        string curS = ss == "" ? comp : ss;
+        string res = "";
+        int j = 1;
+        int len = curS.size();
+        while (j < len)
+        {
+            res += string(curS[j - 1] - '0', curS[j]);
+            j += 2;
+        }
+        return res;
+    }
+    // 随机生成RLE友好型纯字母字符串
+    void RandomPureString(int length)
+    {
+        raw.clear();
         srand(int(time(0)));
         while (length > 0)
         {
@@ -93,28 +141,40 @@ public:
             而c++语言则是面向对象的，长度信息直接被存储在了对象的成员中，读取字符串可以直接根据这个长度来读取，所以就没必要需要结束标记了。
             而且结束标记也不利于读取字符串中夹杂0字符的字符串。
             */
-            s += string(cur_length, cur_char);
+            raw += string(cur_length, cur_char);
             length -= cur_length;
         }
     }
-    void SetS(string newS)
+    // 随机生成RLE友好型字符串
+    void RandomCommonString(int length)
     {
-        s.clear(); //s.clear()的目的只是把s[0]='\0'
-        s = newS;
+        raw.clear();
+        srand(int(time(0)));
+        while (length > 0)
+        {
+            int cur_length = rand() % length + 1;
+            char cur_char = rand() % 95 + 32;
+            raw += string(cur_length, cur_char);
+            length -= cur_length;
+        }
     }
-    string GetS()
+    void SetRaw(string newS)
     {
-        return s;
+        raw.clear(); //s.clear()的目的只是把s[0]='\0',
+        raw = newS;
+    }
+    string GetRaw()
+    {
+        return raw;
     }
 };
 int main()
 {
-    // RLE *r = new RLE();
-    // r->RandomRleFriendlyString(18);
-    // cout << r->getS() << endl;
-    string s = "1223";
-    s[2] = '\0';
-    cout << s << endl;
-    cout << "hello rle" << endl;
+    RLE *r = new RLE();
+    r->RandomCommonString(28);
+    cout << r->GetRaw() << endl;
+    r->CompressCommonString();
+    cout << r->GetComp() << endl;
+    cout << r->DecompressCommonString() << endl;
     return 0;
 }
