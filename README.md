@@ -38,10 +38,9 @@
 ### C++初始化字符串的几种方式
 
 1. 直接赋值`string s="abc"`
-
 2. `string( size_type length, char ch );`拷贝length个ch字符，`string str2( 5, 'c' );  //  str2 'ccccc'*`；
-
 3. 用字符数组或者字符串：`string( string &str, size_type index, size_type length );`从`str[index]`开始的length个字符 或者 `string( string &str, size_type start, size_type end);`从`str[start]`到`str[end]`之间的字符； `string &str`可以变成`char *`;
+4. 直接用字符数组的地址初始化也可以，默认该位置到结尾，`string(char *pos)`
 
 ### 关于C++的string是否以\0结尾
 
@@ -49,7 +48,7 @@
 
 &emsp;&emsp;而c++语言则是面向对象的，长度信息直接被存储在了对象的成员中，读取字符串可以直接根据这个长度来读取，所以就没必要需要结束标记，而且结束标记也不利于读取字符串中夹杂\0字符的字符串；
 
-## c++中string容量相关问题
+### c++中string容量相关问题
 
 &emsp;&emsp;在C++中，理解capacity和size之间的区别非常重要。容器的size是指它已经保存的元素的数目；而capacity则是在不分配新的内存空间的前提下它最多可以保存多少元素；
 
@@ -61,8 +60,38 @@
 
 &emsp;&emsp;当创建空容器时， 容量(capacity)为 0；当用完时，增加原容量的 1/2，这里可以理解为**以原大小的1.5倍另外配置一块较大的新空间，然后将原空间内容拷贝过来，在新空间的内容末尾添加元素，并释放原空间**；适用如 vector、string这种元素连续存储的容器， 如为list则不同；capacity一般大于size的原因是为了避免每次增加数据时都要重新分配内存，所以一般会生成一个较大的空间，以便随后的数据插入；
 
+### 读写文件时，如果处理值>128的单字节
 
+cpp能实现，c我觉得悬，读数据时先把它转换成`char*`地址，再转换成int，写的时候，用`char*`写入；
 
+```cpp
+fstream in(argv[0], ifstream::in | ios::binary);
+if (!in)
+	perror(argv[0]), exit(1);
+// r->CompressFile(in, argv[1]);
+
+// 依次读取二进制文件in中的unsigned char值,再写入out
+unsigned char c;
+fstream out("fir.txt", ios::trunc | ios::binary | ofstream::out);
+while (in.read((char *)&c, sizeof(c)))
+{
+    cout << (int)c << endl;
+    out.write((char *)&c, sizeof(c));
+}
+in.close();
+out.close();
+```
+
+### 流操作 fstream
+
+ios::app：　　　 //以追加的方式打开文件  
+ios::ate：　　　 //文件打开后定位到文件尾，ios:app就包含有此属性  
+ios::binary：　 //以二进制方式打开文件，缺省的方式是文本方式。两种方式的区别见前文  
+ios::in：　　　  //文件以输入方式打开（文件数据输入到内存）  
+ios::out：　　　 //文件以输出方式打开（内存数据输出到文件）  
+ios::nocreate： //不建立文件，所以文件不存在时打开失败  
+ios::noreplace：//不覆盖文件，所以打开文件时如果文件存在失败  
+ios::trunc：　  //如果文件存在，把文件长度设为0
 
 
 

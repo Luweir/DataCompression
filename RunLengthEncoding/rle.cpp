@@ -1,13 +1,12 @@
 //游程编码
 
 #include <iostream>
-#include <cstdlib>
-#include <ctime>
-#include <cstring>
 #include <assert.h>
+#include <bits/stdc++.h>
 
 using namespace std;
 
+typedef unsigned int U32;
 // Error handler: print message if any, and exit
 void quit(const char *message = 0)
 {
@@ -141,6 +140,36 @@ public:
             length -= cur_length;
         }
     }
+    // 压缩文件
+    void CompressFile(fstream &in, char *tarName)
+    {
+        fstream out(tarName, ios::trunc | ios::binary | ofstream::out);
+        unsigned char c;
+        unsigned char last;
+        in.read((char *)&last, sizeof(c));
+        unsigned char count = 1;
+        while (in.read((char *)&c, sizeof(c)))
+        {
+            if (c == last && count < 255)
+            {
+                count++;
+            }
+            else
+            {
+                out.write((char *)&count, sizeof(count));
+                out.write((char *)&last, sizeof(c));
+                count = 1;
+                last = c;
+            }
+        }
+        out.write((char *)&count, sizeof(count));
+        out.write((char *)&c, sizeof(c));
+        out.close();
+    }
+    void DecompressFile(FILE *in, char *tarName)
+    {
+        FILE *out = fopen(tarName, "wb");
+    }
     void SetRaw(string newS)
     {
         raw.clear(); //s.clear()的目的只是把s[0]='\0',
@@ -153,11 +182,26 @@ public:
 };
 int main()
 {
+    int argc = 2;
+    char argv[][60] = {"./project/DataCompression/RunLengthEncoding/data.txt", "data.txt.rle"};
     RLE *r = new RLE();
-    r->RandomCommonString(28);
-    cout << r->GetRaw() << endl;
-    r->CompressCommonString();
-    cout << r->GetComp() << endl;
-    cout << r->DecompressCommonString() << endl;
+
+    // begin -> test
+    // r->RandomCommonString(28);
+    // cout << r->GetRaw() << endl;
+    // r->CompressCommonString();
+    // cout << r->GetComp() << endl;
+    // cout << r->DecompressCommonString() << endl;
+    // FILE *in = fopen(argv[0], "rb");
+    // end
+
+    fstream in(argv[0], ifstream::in | ios::binary);
+    if (!in)
+        perror(argv[0]), exit(1);
+    r->CompressFile(in, argv[1]);
+
+    // C语言貌似能解决，因为putc()能写入这样的数据，他会截断最后一个字节
+    // int getc(FILE * stream);
+    // int putc(int char, FILE *stream)
     return 0;
 }
