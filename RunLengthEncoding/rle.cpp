@@ -1,12 +1,10 @@
 //游程编码
-
 #include <iostream>
 #include <assert.h>
 #include <bits/stdc++.h>
 
 using namespace std;
 
-typedef unsigned int U32;
 // Error handler: print message if any, and exit
 void quit(const char *message = 0)
 {
@@ -29,7 +27,7 @@ public:
     {
         return comp;
     }
-    // 压缩纯字母字符串数据
+    // Compress pure letter string data
     void CompressPureString()
     {
         int len = raw.size();
@@ -53,7 +51,7 @@ public:
         }
         comp += to_string(count) + raw[len - 1];
     }
-    // 解压缩纯字母字符串数据
+    // Decompress pure alphabetic string data
     string DecompressPureString(string ss = "")
     {
         string curS = ss == "" ? comp : ss;
@@ -76,7 +74,7 @@ public:
         }
         return res;
     }
-    // 通用字符串压缩
+    // General string compression
     void CompressCommonString()
     {
         int len = raw.size();
@@ -100,7 +98,7 @@ public:
         }
         comp += to_string(count) + raw[len - 1];
     }
-    // 通用字符串解压缩
+    // common string decompression
     string DecompressCommonString(string ss = "")
     {
         string curS = ss == "" ? comp : ss;
@@ -114,7 +112,7 @@ public:
         }
         return res;
     }
-    // 随机生成RLE友好型纯字母字符串
+    // Randomly generate RLE-friendly pure letter strings
     void RandomPureString(int length)
     {
         raw.clear();
@@ -127,7 +125,7 @@ public:
             length -= cur_length;
         }
     }
-    // 随机生成RLE友好型字符串
+    // Randomly generate RLE-friendly strings
     void RandomCommonString(int length)
     {
         raw.clear();
@@ -140,10 +138,9 @@ public:
             length -= cur_length;
         }
     }
-    // 压缩文件
-    void CompressFile(fstream &in, char *tarName)
+    // compress the file in to file tarName
+    void CompressFile(fstream &in, fstream &out)
     {
-        fstream out(tarName, ios::trunc | ios::binary | ofstream::out);
         unsigned char c;
         unsigned char last;
         in.read((char *)&last, sizeof(c));
@@ -166,13 +163,24 @@ public:
         out.write((char *)&c, sizeof(c));
         out.close();
     }
-    void DecompressFile(FILE *in, char *tarName)
+    // Decompress the file in to tarName
+    void DecompressFile(fstream &in, fstream &out)
     {
-        FILE *out = fopen(tarName, "wb");
+        unsigned char count;
+        unsigned char c;
+        while (in.read((char *)&count, sizeof(count)) && in.read((char *)&c, sizeof(c)))
+        {
+            while (count--)
+            {
+                out.write((char *)&c, sizeof(c));
+            }
+        }
+        out.close();
     }
     void SetRaw(string newS)
     {
-        raw.clear(); //s.clear()的目的只是把s[0]='\0',
+        //set s[0]='\0'
+        raw.clear();
         raw = newS;
     }
     string GetRaw()
@@ -180,10 +188,18 @@ public:
         return raw;
     }
 };
-int main()
+
+int main(int argc, char **argv)
 {
-    int argc = 2;
-    char argv[][60] = {"./project/DataCompression/RunLengthEncoding/data.txt", "data.txt.rle"};
+    if (argc != 4 || argv[1][0] != 'c' && argv[1][0] != 'd')
+    {
+        cout << "rle file compressor (C) 2021, luweir\n\n"
+             << "To compress:   rle c input output  \n"
+             << "To decompress: rle d input output  \n"
+             << endl;
+        return 1;
+    }
+    clock_t start = clock();
     RLE *r = new RLE();
 
     // begin -> test
@@ -195,13 +211,27 @@ int main()
     // FILE *in = fopen(argv[0], "rb");
     // end
 
+    // compress file
     fstream in(argv[0], ifstream::in | ios::binary);
+    fstream out(argv[3], ios::trunc | ios::binary | ofstream ::out);
     if (!in)
-        perror(argv[0]), exit(1);
-    r->CompressFile(in, argv[1]);
+    {
+        perror(argv[0]);
+        exit(1);
+    }
+    if (argv[1][0] == 'c')
+    {
+        r->CompressFile(in, out);
+        in.close();
+    }
+    // decompress file
+    if (argv[1][0] == 'd')
+    {
+        in.open(argv[1], ifstream::in | ios::binary);
+        r->DecompressFile(in, out);
+    }
 
-    // C语言貌似能解决，因为putc()能写入这样的数据，他会截断最后一个字节
-    // int getc(FILE * stream);
-    // int putc(int char, FILE *stream)
+    printf("%ld -> %ld in %1.2f sec. \n",
+           in.tellg(), out.tellg(), double(clock() - start) / CLOCKS_PER_SEC);
     return 0;
 }

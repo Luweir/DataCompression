@@ -82,6 +82,36 @@ in.close();
 out.close();
 ```
 
+C也能实现，当时不知道，傻傻的用unsigned char去接受getc的值；
+
+```cpp
+void test(FILE *in)
+{
+    FILE *out = fopen("tarname.rle", "wb");
+    int last = getc(in);
+    int c = 0;
+    int count = 1;
+    while ((c = getc(in)) != EOF)
+    {
+        if (c == last && count < 255)
+        {
+            count++;
+        }
+        else
+        {
+            putc(count, out);
+            putc(last, out);
+            count = 1;
+            last = c;
+        }
+    }
+    putc(count, out);
+    putc(last, out);
+}
+```
+
+
+
 ### 流操作 fstream
 
 ios::app：　　　 //以追加的方式打开文件  
@@ -93,5 +123,12 @@ ios::nocreate： //不建立文件，所以文件不存在时打开失败
 ios::noreplace：//不覆盖文件，所以打开文件时如果文件存在失败  
 ios::trunc：　  //如果文件存在，把文件长度设为0
 
+## 测试
 
+![image-20211023160254238](images.assets/image-20211023160254238.png)
 
+为什么图像压缩后还会变大？
+
+![image-20211023160316100](images.assets/image-20211023160316100.png)
+
+这是picture.png的二进制表示，很明显它连续重复的并不是一个字符，而是一串字符；需要别的压缩算法才能很好地压缩；
