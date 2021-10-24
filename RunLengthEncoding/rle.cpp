@@ -20,6 +20,8 @@ private:
     string comp;
 
 public:
+    long long inSize;
+    long long outSize;
     RLE()
     {
     }
@@ -138,9 +140,11 @@ public:
             length -= cur_length;
         }
     }
-    // compress the file in to file tarName
+    // compress the file in to out
     void CompressFile(fstream &in, fstream &out)
     {
+        long long inLength = 0;
+        long long outLnegth = 0;
         unsigned char c;
         unsigned char last;
         in.read((char *)&last, sizeof(c));
@@ -155,27 +159,35 @@ public:
             {
                 out.write((char *)&count, sizeof(count));
                 out.write((char *)&last, sizeof(c));
+                outLnegth += 2;
+                inLength += count;
                 count = 1;
                 last = c;
             }
         }
         out.write((char *)&count, sizeof(count));
         out.write((char *)&c, sizeof(c));
-        out.close();
+        inSize = inLength + count;
+        outSize = outLnegth + 2;
     }
-    // Decompress the file in to tarName
+    // Decompress the file in to out
     void DecompressFile(fstream &in, fstream &out)
     {
+        long long inLength = 0;
+        long long outLnegth = 0;
         unsigned char count;
         unsigned char c;
         while (in.read((char *)&count, sizeof(count)) && in.read((char *)&c, sizeof(c)))
         {
+            inLength += 2;
+            outLnegth += count;
             while (count--)
             {
                 out.write((char *)&c, sizeof(c));
             }
         }
-        out.close();
+        outSize = outLnegth;
+        inSize = inLength;
     }
     void SetRaw(string newS)
     {
@@ -212,7 +224,7 @@ int main(int argc, char **argv)
     // end
 
     // compress file
-    fstream in(argv[0], ifstream::in | ios::binary);
+    fstream in(argv[2], ifstream::in | ios::binary);
     fstream out(argv[3], ios::trunc | ios::binary | ofstream ::out);
     if (!in)
     {
@@ -222,16 +234,17 @@ int main(int argc, char **argv)
     if (argv[1][0] == 'c')
     {
         r->CompressFile(in, out);
-        in.close();
     }
     // decompress file
     if (argv[1][0] == 'd')
     {
-        in.open(argv[1], ifstream::in | ios::binary);
         r->DecompressFile(in, out);
     }
 
-    printf("%ld -> %ld in %1.2f sec. \n",
-           in.tellg(), out.tellg(), double(clock() - start) / CLOCKS_PER_SEC);
+    printf("%ld -> %ld in %1.4f sec. \n",
+           r->inSize, r->outSize, double(clock() - start) / CLOCKS_PER_SEC);
+
+    in.close();
+    out.close();
     return 0;
 }
