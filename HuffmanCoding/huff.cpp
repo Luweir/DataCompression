@@ -95,7 +95,6 @@ public:
         if (size < 0 || size >= 0x7FFFFFFF)
             quit("input file too big");
         fseek(in, 0, SEEK_SET);
-        cout << size << endl;
         while ((c = getc(in)) != EOF)
         {
             statistic[c]++;
@@ -129,7 +128,8 @@ public:
         // 如果root是叶子结点
         if (curNode->left == nullptr && curNode->right == nullptr && (int)(root->ch) > 0)
         {
-            cout << int(curNode->ch) << " " << code << endl;
+            // 输出编码表
+            // cout << int(curNode->ch) << " " << code << endl;
             codeTable[curNode->ch] = code;
             return;
         }
@@ -153,7 +153,10 @@ public:
     void WriteStatistic(FILE *out)
     {
         int len = statistic.size();
-        // 第一个字节表示，词频有多少对，即statistic有多少对
+        // 前四个字节表示，词频有多少对，即statistic有多少对，后面每个字符的频率也要四个字节，因为1个字节只能存255以下，不切实际
+        putc(len >> 24, out);
+        putc(len >> 16, out);
+        putc(len >> 8, out);
         putc(len, out);
         for (auto pair : statistic)
         {
@@ -172,6 +175,7 @@ public:
     // 压缩文件
     void CompressFile(FILE *in, FILE *out)
     {
+        Init();
         WordFrequencyStatistics(in);
         CreateHuffmanTree();
         BuildCode();
@@ -186,7 +190,7 @@ public:
             res += codeTable[c];
         }
         int len = res.size();
-        cout << len / 8 << endl;
+        // cout << len / 8 << endl;
         // 之后的第一个字节表示最后的那个字节有几位，暂时想不到更好的办法，
         putc(len % 8, out);
         for (int i = 0; i < len;)
@@ -199,12 +203,21 @@ public:
             i += 8;
             putc(sum, out);
         }
+        FreeNode(root);
     }
     // 解压缩时从输入文件读取词频表
     void ReadStatistic(FILE *in)
     {
-        int numberFrequency = getc(in);
         int c = 0;
+        // 先拿到前四个字节，确定有多少个词频对
+        int numberFrequency = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            c = getc(in);
+            numberFrequency = numberFrequency << 8;
+            numberFrequency += c;
+        }
+        // 取出numberFrequency个词频对
         while (numberFrequency-- && ((c = getc(in)) != EOF))
         {
             int i = 0;
@@ -237,10 +250,11 @@ public:
     // 解压缩文件
     void DecompressFile(FILE *in, FILE *out)
     {
+        Init();
         // 先读词频表，建立哈夫曼树
         ReadStatistic(in);
         CreateHuffmanTree();
-
+        BuildCode();
         // 除词频表外的部分进行解压缩，这些用huffman编码表示的
         // 结尾的那个字节具体有多少位
         int AtEndDigits = getc(in);
@@ -256,7 +270,7 @@ public:
         // 对最后一位特殊的处理，比如截断
         res += IntegerToBinary(last).substr(8 - AtEndDigits, AtEndDigits);
 
-        HuffmanTreeNode *roott = new HuffmanTreeNode();
+        HuffmanTreeNode *roott = root;
         int index = 0;
         int len = res.size();
         while (index < len)
@@ -269,8 +283,9 @@ public:
                 if (roott != nullptr && roott->left == nullptr && roott->right == nullptr)
                 {
                     putc(int(roott->ch), out);
-                    continue;
+                    roott = root;
                 }
+                continue;
             }
             if (res[index] == '1')
             {
@@ -280,20 +295,47 @@ public:
                 if (roott != nullptr && roott->left == nullptr && roott->right == nullptr)
                 {
                     putc(int(roott->ch), out);
-                    continue;
+                    roott = root;
                 }
+                continue;
             }
         }
+        FreeNode(root);
     }
 };
 
-int main()
+int main(int argc, char **argv)
 {
-    FILE *in = fopen("./project/DataCompression/HuffmanCoding/out.huf", "rb");
-    FILE *out = fopen("./project/DataCompression/HuffmanCoding/data1.txt", "wb");
-    Huff *huf = new Huff();
-    huf->DecompressFile(in, out);
+    if (argc != 4 || argv[1][0] != 'c' && argv[1][0] != 'd')
+    {
+        cout << "Huffman file compressor (C) 2021, luweir\n\n"
+             << "To compress:   huff c input output  \n"
+             << "To decompress: huff d input output  \n"
+             << endl;
+        return 1;
+    }
+    clock_t start = clock();
 
+    FILE *in = fopen(argv[2], "rb");
+    if (!in)
+    {
+        perror(argv[0]);
+        exit(1);
+    }
+
+    FILE *out = fopen(argv[3], "wb");
+    Huff *h = new Huff();
+    if (argv[1][0] == 'c')
+    {
+        h->CompressFile(in, out);
+    }
+    if (argv[1][0] == 'd')
+    {
+        h->DecompressFile(in, out);
+    }
+
+    printf("%ld -> %ld in %1.4f sec. \n",
+           ftell(in), ftell(out), double(clock() - start) / CLOCKS_PER_SEC);
     fclose(in);
     fclose(out);
 
