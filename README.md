@@ -221,3 +221,6 @@ cin.ignore(1024,'\n')，通常把第一个参数设置得足够大，这样实�
 
 [nayuki/Reference-arithmetic-coding: Clear implementation of arithmetic coding for educational purposes in Java, Python, C++. (github.com)](https://github.com/nayuki/Reference-arithmetic-coding)
 
+
+
+[Arithmetic Compression With C# - CodeProject](https://www.codeproject.com/Articles/45320/Arithmetic-Compression-With-C)
