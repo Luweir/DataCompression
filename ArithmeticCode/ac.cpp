@@ -108,14 +108,16 @@ public:
             numBitsFilled = 0;
         }
     }
+    // 最后凑位数的
     void finish()
     {
         while (numBitsFilled != 0)
             writeBit(0);
     }
 };
+
 ////////////////////////////////////// ArithmeticEnCoder ////////////////////////////////////
-class ArithmeticEnCoder
+class EnCoder
 {
 private:
     int numStateBits;      // 状态位数量
@@ -131,7 +133,7 @@ private:
     BitOutPut *output;
 
 public:
-    ArithmeticEnCoder(int numBits, BitOutPut *&bout)
+    EnCoder(int numBits, BitOutPut *&bout)
     {
         numStateBits = numBits;
         fullRange = static_cast<decltype(fullRange)>(1) << numStateBits;
@@ -145,6 +147,7 @@ public:
         output = bout;
         numUnderflow = 0;
     }
+
     // 结果更新此算术编码器的代码范围（低和高）
     void update(FrequencyTable *&freqs, uint32_t symbol)
     {
@@ -199,7 +202,35 @@ public:
         numUnderflow++;
     }
 };
+class Compress
+{
+public:
+    void Run(FILE *in, FILE *out)
+    {
+        // 生成频率表
+        FrequencyTable *freqs = new FrequencyTable();
+        int symbol = 0;
+        while ((symbol = getc(in)) != EOF)
+        {
+            freqs->IncreaseFrequency((uint32_t)symbol);
+        }
+        fseek(in, 0, SEEK_SET);
 
+        // 向out写入频率表
+        freqs->WriteFrequencyTable(out);
+        BitOutPut *bout = new BitOutPut(out);
+
+        // 编码压缩
+        EnCoder *encoder = new EnCoder(32, bout);
+        while ((symbol = getc(in)) != EOF)
+        {
+            encoder->write(freqs, static_cast<uint32_t>(symbol));
+        }
+        encoder->write(freqs, 256); // EOF
+        encoder->finish();
+        bout->finish();
+    }
+};
 int main()
 {
     int argc = 4;
@@ -211,28 +242,7 @@ int main()
         exit(1);
     }
     FILE *out = fopen(argv[3], "wb");
-
-    // 生成频率表
-    FrequencyTable *freqs = new FrequencyTable();
-    int symbol = 0;
-    while ((symbol = getc(in)) != EOF)
-    {
-        freqs->IncreaseFrequency((uint32_t)symbol);
-    }
-    fseek(in, 0, SEEK_SET);
-
-    // 向out写入频率表
-    freqs->WriteFrequencyTable(out);
-    BitOutPut *bout = new BitOutPut(out);
-
-    // 编码压缩
-    ArithmeticEnCoder *encoder = new ArithmeticEnCoder(32, bout);
-    while ((symbol = getc(in)) != EOF)
-    {
-        encoder->write(freqs, static_cast<uint32_t>(symbol));
-    }
-    encoder->write(freqs, 256); // EOF
-    encoder->finish();
-    bout->finish();
+    Compress *c = new Compress();
+    c->Run(in, out);
     return 0;
 }
